@@ -1,17 +1,33 @@
 {
-  "name": "forjing",
+  "name": "our-little-planet",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed": "node scripts/seed.mjs",
+    "migrate-oss": "node scripts/migrate-to-oss.mjs",
+    "convert-heic": "node scripts/convert-heic.mjs",
+    "backfill-fingerprints": "node scripts/backfill-fingerprints.mjs",
+    "gen-posters": "node scripts/gen-posters.mjs"
   },
   "dependencies": {
+    "@fontsource/baloo-2": "^5.3.0",
+    "@fontsource/caveat": "^5.3.0",
+    "@phosphor-icons/react": "^2.1.10",
+    "@types/better-sqlite3": "^9.6.0",
+    "better-sqlite3": "^13.0.3",
+    "fflate": "^0.8.3",
+    "heic-convert": "^2.1.0",
+    "lxgw-wenkai-webfont": "^1.7.0",
+    "motion": "^13.3.0",
     "next": "16.3.5",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "sharp": "^0.35.4",
+    "solarlunar": "^3.1.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

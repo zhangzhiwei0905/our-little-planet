@@ -1,26 +1,559 @@
 @import "tailwindcss";
 
+/* 明暗双模式：颜色都收在 --raw 变量里，.dark 整组换掉；
+   工具类（bg-paper 之类）通过 @theme inline 直接引用 raw 变量，
+   老代码里内联写的 var(--color-paper) 由 :root 里的别名层兜住 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* emoji 过滤层：一个只声明 emoji 码位（unicode-range）的 @font-face，
+   按 local() 依次匹配各平台的系统 emoji 字体（Mac/iOS、Windows、安卓/Linux）。
+   排在字体栈最前面时，只有 emoji 字符会命中它，数字/字母/汉字直接落到后面的正文字体，
+   不会被 Windows「Segoe UI Emoji」/安卓「Noto Color Emoji」自带的数字字形放大错位。 */
+@font-face {
+  font-family: "Emoji-First";
+  src: local("Apple Color Emoji"), local("Segoe UI Emoji"), local("Noto Color Emoji");
+  unicode-range: U+1F000-1FBFF, U+2600-27BF, U+2B00-2BFF, U+FE0F, U+200D, U+20E3;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+
+  /* 设计 tokens：奶油纸 + 玫瑰粉唯一强调色 + 贴纸色板 */
+  --paper: #fff9f0;
+  --paper-deep: #f6eee1;
+  --card: #fffdf7;
+  --ink: #5c4a42;
+  --ink-soft: #7e6557;
+  --rose: #e48ba8;
+  --rose-deep: #b4506b;
+  --rose-soft: #f9dfe8;
+  --peach: #f5c6a5;
+  --butter: #f7e3a1;
+  --mist: #a8c5d6;
+  --matcha: #b8d4b8;
+
+  /* 更暖一档的纸色：信纸 / 拼贴画板 / 信封（暗色下换成暖调深纸） */
+  --paper-warm: #fdf6e8;
+  --env: #f4ead6;
+  --env-line: #e2d2b2;
+  --env-letter: #fdf6e8;
+  --env-flap: #ece0c4;
+
+  /* 火漆上的奶油字、便利贴的墨色：实体物，明暗模式都不换 */
+  --cream: #fff6ec;
+  --sticky-ink: #635047;
+  /* 主按钮上的字：亮玫瑰底配奶油字，暗色的亮粉底换深梅色 */
+  --btn-ink: #fff9f0;
+
+  /* 信纸横线 */
+  --letter-rule: rgba(180, 80, 107, 0.13);
+
+  --elev-1: 0 1px 2px rgba(92, 74, 66, 0.05), 0 6px 18px rgba(92, 74, 66, 0.08);
+  --elev-2: 0 2px 4px rgba(92, 74, 66, 0.07), 0 18px 40px rgba(92, 74, 66, 0.16);
+
+  /* 纸张纹理：亮纸用正片叠底压出颗粒，暗纸换屏幕混合提一点噪点 */
+  --grain-blend: multiply;
+  --grain-opacity: 0.45;
+
+  /* 别名层：给组件里内联 var(--color-*) 的老写法（SVG 描边、color-mix）兜底 */
+  --color-paper: var(--paper);
+  --color-paper-deep: var(--paper-deep);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-rose: var(--rose);
+  --color-rose-deep: var(--rose-deep);
+  --color-rose-soft: var(--rose-soft);
+  --color-peach: var(--peach);
+  --color-butter: var(--butter);
+  --color-mist: var(--mist);
+  --color-matcha: var(--matcha);
+  --color-paper-warm: var(--paper-warm);
+  --color-env: var(--env);
+  --color-env-line: var(--env-line);
+  --color-env-letter: var(--env-letter);
+  --color-env-flap: var(--env-flap);
+  --color-cream: var(--cream);
+}
+
+.dark {
+  color-scheme: dark;
+
+  /* 夜晚的小星球：暖调深梅棕的纸，玫瑰粉提亮一档保证对比度 */
+  --paper: #231c22;
+  --paper-deep: #1a141a;
+  --card: #2d252d;
+  --ink: #eee3da;
+  --ink-soft: #c8b5ab;
+  --rose: #e795b0;
+  --rose-deep: #e2839f;
+  --rose-soft: #453040;
+  --peach: #4c3a2d;
+  --butter: #51492f;
+  --mist: #35434f;
+  --matcha: #3a4a34;
+
+  --paper-warm: #2e262b;
+  --env: #3b3037;
+  --env-line: #5a4a52;
+  --env-letter: #2e262b;
+  --env-flap: #473a42;
+
+  --letter-rule: rgba(226, 131, 159, 0.16);
+
+  --elev-1: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 18px rgba(0, 0, 0, 0.35);
+  --elev-2: 0 2px 4px rgba(0, 0, 0, 0.32), 0 18px 40px rgba(0, 0, 0, 0.5);
+
+  --grain-blend: screen;
+  --grain-opacity: 0.14;
+
+  --btn-ink: #331420;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-paper: var(--paper);
+  --color-paper-deep: var(--paper-deep);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-rose: var(--rose);
+  --color-rose-deep: var(--rose-deep);
+  --color-rose-soft: var(--rose-soft);
+  --color-peach: var(--peach);
+  --color-butter: var(--butter);
+  --color-mist: var(--mist);
+  --color-matcha: var(--matcha);
+  --color-paper-warm: var(--paper-warm);
+  --color-env: var(--env);
+  --color-env-line: var(--env-line);
+  --color-env-letter: var(--env-letter);
+  --color-env-flap: var(--env-flap);
+  --color-cream: var(--cream);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-hand: "Emoji-First", "LXGW WenKai", "LXGW WenKai Lite", "Kaiti SC", "STKaiti", serif;
+  --font-script: "Emoji-First", "Caveat", "LXGW WenKai", cursive;
+  --font-round: "Emoji-First", "Baloo 2", "LXGW WenKai", sans-serif;
+
+  --shadow-card: var(--elev-1);
+  --shadow-lifted: var(--elev-2);
+
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-hand);
+}
+
+/* 手机（尤其横屏）禁止左右滚动：个别宽元素撑出的横向溢出直接裁掉，
+   只保留上下滚。用 clip 而不是 hidden——clip 不产生滚动容器，
+   顶栏的 sticky 定位不受影响 */
+html,
+body {
+  overflow-x: clip;
+}
+
+::selection {
+  background: var(--rose-soft);
+}
+
+:focus-visible {
+  outline: 2px solid var(--rose-deep);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* 纸张纹理：fixed + pointer-events-none，不随滚动重绘 */
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: var(--grain-opacity);
+  mix-blend-mode: var(--grain-blend);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+}
+
+/* 手账纸卡：全站统一容器 */
+.card-paper {
+  position: relative;
+  background: var(--card);
+  border: 1px solid color-mix(in srgb, var(--ink) 8%, transparent);
+  border-radius: 20px;
+  padding: 1.6rem 1.4rem 1.7rem;
+  box-shadow: var(--elev-1);
+}
+@media (min-width: 640px) {
+  .card-paper {
+    padding: 2rem 2.2rem 2.1rem;
+  }
+}
+
+/* 信纸：横线，行高与横线间距一致，让字骑在线上 */
+.letter-paper {
+  --lh: 2.2rem;
+  background-color: var(--paper-warm);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(var(--lh) - 1px),
+    var(--letter-rule) calc(var(--lh) - 1px),
+    var(--letter-rule) var(--lh)
+  );
+}
+
+/* 自由拼贴页：固定 3:4 竖页，奶油纸 + 点阵格；
+ *  container-type: size 让子元素能用 cqw/cqh 按页宽高百分比摆放，任意屏宽布局一致 */
+.board-page {
+  container-type: size;
+  aspect-ratio: 3 / 4;
+  background-color: var(--paper-warm);
+  background-image: radial-gradient(color-mix(in srgb, var(--ink) 7%, transparent) 1px, transparent 1px);
+  background-size: 1.6rem 1.6rem;
+}
+
+/* 火漆封印：不圆润的手捏边 + 内高光（实体物，明暗都用玫瑰火漆） */
+.wax-seal {
+  background: radial-gradient(circle at 35% 30%, #d16684, #b4506b 60%, #9c3f58);
+  border-radius: 47% 53% 51% 49% / 52% 48% 52% 48%;
+  box-shadow:
+    inset 0 2px 3px rgba(255, 255, 255, 0.25),
+    inset 0 -3px 4px rgba(0, 0, 0, 0.18),
+    0 3px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* 信封翻盖 */
+.envelope-flap {
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+
+/* 和纸胶带：颜色与角度用 CSS 变量传入，撕边用 clip-path；
+   纯装饰不接事件，别挡住底下照片/按钮的点击（胶带是实物，暗色下仍保持粉彩） */
+.washi-tape {
+  position: absolute;
+  pointer-events: none;
+  width: 92px;
+  height: 26px;
+  background:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.4) 0 5px, transparent 5px 10px),
+    color-mix(in srgb, var(--tone, #e48ba8) 72%, transparent);
+  transform: translateX(-50%) rotate(var(--r, -6deg));
+  clip-path: polygon(
+    3% 0%, 97% 3%, 100% 18%, 96% 32%, 100% 55%, 97% 72%, 100% 88%, 97% 100%,
+    3% 97%, 0% 82%, 4% 60%, 0% 40%, 4% 22%
+  );
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+  opacity: 0.92;
+}
+.dark .washi-tape {
+  opacity: 0.8;
+}
+
+/* 便利贴：折角用伪元素。纸是亮的粉彩实物，暗色模式下墨字固定用深色 */
+.sticky-note {
+  --tone: #f7e3a1;
+  position: relative;
+  background: var(--tone);
+  border-radius: 4px 4px 14px 4px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.14);
+  transition: transform 0.45s var(--ease-spring), box-shadow 0.45s var(--ease-spring);
+}
+.sticky-note::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 22px;
+  height: 22px;
+  background: linear-gradient(135deg, transparent 50%, rgba(0, 0, 0, 0.14) 50%);
+  border-radius: 0 0 14px 0;
+}
+.sticky-note:hover {
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.2);
+}
+.dark .sticky-note,
+.dark .sticky-note * {
+  color: var(--sticky-ink);
+}
+
+/* 拍立得照片卡：白边相纸也是实物，暗色模式下描述/日期/标签的墨字同样固定深色 */
+.dark .polaroid-caption,
+.dark .polaroid-caption * {
+  color: var(--sticky-ink);
+}
+
+/* 印章的混合模式：亮纸正片叠底才有红墨渗纸的感觉，暗纸上正常混合 */
+.stamp-blend {
+  mix-blend-mode: multiply;
+}
+.dark .stamp-blend {
+  mix-blend-mode: normal;
+}
+
+/* 大事记背景音乐：转动的唱片（系统开了「减少动态」就停转） */
+@keyframes bgm-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.bgm-disc-spin {
+  animation: bgm-spin 8s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bgm-disc-spin {
+    animation: none;
+  }
+}
+
+/* 日期章 */
+.datestamp {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-round);
+  font-weight: 600;
+  font-size: 0.85rem;
+  letter-spacing: 0.14em;
+  color: var(--ink-soft);
+  border: 1.5px solid color-mix(in srgb, var(--ink-soft) 40%, transparent);
+  border-radius: 999px;
+  padding: 0.08rem 0.7rem;
+  transform: rotate(-2deg);
+}
+
+/* 月份圆章 */
+.stamp-circle {
+  --stamp: var(--rose-deep);
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 5.2rem;
+  height: 5.2rem;
+  flex-shrink: 0;
+  border: 2px solid color-mix(in srgb, var(--stamp) 55%, transparent);
+  border-radius: 999px;
+  color: color-mix(in srgb, var(--stamp) 80%, var(--ink));
+  transform: rotate(-5deg);
+}
+.stamp-circle::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border: 1.5px dashed color-mix(in srgb, var(--stamp) 35%, transparent);
+  border-radius: 999px;
+}
+
+/* 糖分评级章：盖在便利贴右上角的红墨小圆章（恋综结算味的那个） */
+.grade-stamp {
+  --stamp: var(--rose-deep);
+  position: absolute;
+  top: -0.85rem;
+  right: -0.85rem;
+  z-index: 1;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border: 2px solid color-mix(in srgb, var(--stamp) 62%, transparent);
+  border-radius: 999px;
+  color: color-mix(in srgb, var(--stamp) 88%, var(--ink));
+  background: color-mix(in srgb, var(--stamp) 7%, transparent);
+  transform: rotate(9deg);
+  mix-blend-mode: multiply;
+  opacity: 0.92;
+  pointer-events: none;
+}
+.grade-stamp::before {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border: 1.5px dashed color-mix(in srgb, var(--stamp) 45%, transparent);
+  border-radius: 999px;
+}
+.dark .grade-stamp {
+  mix-blend-mode: normal;
+}
+
+/* 手绘波浪下划线 */
+.scribble {
+  position: relative;
+}
+.scribble::after {
+  content: "";
+  position: absolute;
+  left: -2%;
+  right: -2%;
+  bottom: -8px;
+  height: 10px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 10' preserveAspectRatio='none'%3E%3Cpath d='M2 7 Q 16 2 30 6 T 58 5' fill='none' stroke='%23E48BA8' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E")
+    repeat-x bottom / 60px 10px;
+}
+
+/* 按钮 */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  background: var(--rose-deep);
+  color: var(--btn-ink);
+  padding: 0.72rem 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  box-shadow: 0 6px 16px rgba(180, 80, 107, 0.32);
+  transition: transform 0.35s var(--ease-spring), box-shadow 0.35s var(--ease-spring);
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(180, 80, 107, 0.38);
+}
+.btn-primary:active {
+  transform: translateY(1px) scale(0.98);
+}
+.btn-primary:disabled {
+  opacity: 0.6;
+  transform: none;
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  border: 1.5px solid color-mix(in srgb, var(--ink) 25%, transparent);
+  color: var(--ink);
+  padding: 0.66rem 1.4rem;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  background: transparent;
+  transition: background 0.3s, transform 0.35s var(--ease-spring);
+}
+.btn-ghost:hover {
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  transform: translateY(-2px);
+}
+.btn-ghost:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+.link-soft {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--rose-deep);
+  font-weight: 700;
+  transition: opacity 0.2s;
+}
+.link-soft:hover {
+  opacity: 0.75;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.shake {
+  animation: shake 0.4s;
+}
+@keyframes shake {
+  20% {
+    transform: translateX(-6px);
+  }
+  40% {
+    transform: translateX(5px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
+}
+
+/* 语音气泡的声波：待机时静止、播放时跳动 */
+.voice-wave {
+  display: inline-flex;
+  align-items: center;
+  gap: 2.5px;
+  height: 13px;
+}
+.voice-wave span {
+  width: 3px;
+  height: 100%;
+  border-radius: 999px;
+  background: currentColor;
+  transform: scaleY(0.45);
+  transform-origin: center;
+  transition: transform 0.3s;
+}
+.voice-wave span:nth-child(2) {
+  transform: scaleY(0.85);
+}
+.voice-wave span:nth-child(3) {
+  transform: scaleY(0.6);
+}
+.voice-wave span:nth-child(4) {
+  transform: scaleY(1);
+}
+.voice-wave[data-playing="true"] span {
+  animation: voice-wave 1.1s ease-in-out infinite;
+}
+.voice-wave[data-playing="true"] span:nth-child(2) {
+  animation-delay: 0.18s;
+}
+.voice-wave[data-playing="true"] span:nth-child(3) {
+  animation-delay: 0.36s;
+}
+.voice-wave[data-playing="true"] span:nth-child(4) {
+  animation-delay: 0.54s;
+}
+@keyframes voice-wave {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+/* 深夜小星星眨眼：外层 span.twinkle 控制闪烁节奏（--tw 初始角度、--tw-d 周期、--tw-delay 错峰），
+   内层贴纸自己的 rotate 不受影响；「减少动态」由全局降级统一关停 */
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.85) rotate(var(--tw, 0deg));
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.12) rotate(var(--tw, 0deg));
+  }
+}
+.twinkle {
+  animation: twinkle var(--tw-d, 3s) ease-in-out infinite;
+  animation-delay: var(--tw-delay, 0s);
+}
+
+/* 温柔对待减少动态偏好的读者 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

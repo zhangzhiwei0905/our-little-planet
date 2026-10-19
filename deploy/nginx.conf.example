@@ -1,0 +1,61 @@
+# 我们的小星球 · Nginx 反代示例
+# 把 example.com 换成你的域名；HTTPS 证书可用 certbot --nginx 自动签发并写入下面的 ssl_* 行
+server {
+    server_name example.com www.example.com;
+
+    # 文件总量上限 500 MiB；额外 1 MiB 只供 multipart 表单包装使用。
+    client_max_body_size 501m;
+
+    location = /api/quick {
+        error_page 413 =413 @quick_too_large;
+        error_page 502 503 504 =503 @quick_unavailable;
+
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+    }
+
+    location @quick_too_large {
+        default_type application/json;
+        charset utf-8;
+        return 413 '{"ok":false,"error":"一次上传的文件总大小不能超过 500MB，请压缩视频或分批上传"}';
+    }
+
+    location @quick_unavailable {
+        default_type application/json;
+        charset utf-8;
+        return 503 '{"ok":false,"error":"服务器暂时不可用或处理超时，请先到手帐页面确认是否已保存，避免重复提交"}';
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+    }
+
+    listen 443 ssl;
+    ssl_certificate /etc/letsencrypt/live/example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+}
+
+server {
+    if ($host = example.com) {
+        return 301 https://$host$request_uri;
+    }
+
+    listen 80;
+    server_name example.com www.example.com;
+    return 404;
+}
