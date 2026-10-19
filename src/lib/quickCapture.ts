@@ -25,6 +25,7 @@ import {
   probeMediaMeta,
 } from "./media";
 import { objectKeyFor, ossGetRange, ossPutUrl, ossStatObject, storageMode } from "./storage";
+import { IS_DEMO } from "./demo";
 import { prepareQuickFiles, planQuickMedia, QuickInputError, QUICK_MAX_MEDIA, type QuickFile } from "./quick-files";
 export { QUICK_MAX_BYTES, QUICK_MAX_FILES, QuickInputError, type QuickFile } from "./quick-files";
 
@@ -66,6 +67,7 @@ export function fingerprintOf(buf: Buffer): string {
 
 /** 落存储：local 返回写好的本地路径（探测元信息免得再拷一份临时文件），oss 返回 null */
 async function storeBuffer(key: string, mime: string, buf: Buffer): Promise<string | null> {
+  if (IS_DEMO) return null; // 演示站：文件体不落盘，入库时换样例
   if (storageMode() === "oss") {
     const res = await fetch(ossPutUrl(key, mime), {
       method: "PUT",
@@ -84,6 +86,17 @@ async function storeBuffer(key: string, mime: string, buf: Buffer): Promise<stri
 async function processFile(f: QuickFile): Promise<MediaRow> {
   const mime = normalizeMime(f.mime, f.name);
   const mediaId = newId();
+
+  if (IS_DEMO) {
+    // 演示站：不解码不探测不落盘，直接入库（completeMediaUpload 会换成样例素材）
+    return completeMediaUpload({
+      mediaId,
+      key: objectKeyFor(mediaId, extFor(mime, f.name)),
+      mime,
+      bytes: f.buf.byteLength || 1,
+    });
+  }
+
   const fingerprint = fingerprintOf(f.buf);
 
   if (mime === "image/heic" || mime === "image/heif") {
@@ -146,6 +159,10 @@ async function completeStoredFile(f: QuickStoredFile): Promise<MediaRow> {
   }
   let bytes = f.bytes ?? 0;
   let fingerprint: string | null = null;
+  if (IS_DEMO) {
+    // 演示站：直传的文件体本来就丢弃，不用确认「传没传到」，登记完换样例
+    return completeMediaUpload({ mediaId, key: f.key, mime, bytes: bytes > 0 ? bytes : 1 });
+  }
   if (storageMode() === "oss") {
     const stat = await ossStatObject(f.key);
     if (!stat.exists) throw new QuickInputError(`「${f.name}」还没有上传成功（存储里找不到）`, 400);

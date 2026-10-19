@@ -1,5 +1,6 @@
 import { cookies, headers } from "next/headers";
 import { db } from "./db";
+import { IS_DEMO } from "./demo";
 import { newId, nowISO } from "./ids";
 import { AUTHOR_COOKIE, READER_COOKIE } from "./auth";
 
@@ -233,6 +234,12 @@ export async function ensureGeo(ips: string[]): Promise<Map<string, GeoInfo>> {
     needLookup.push(ip);
   }
   if (needLookup.length === 0) return out;
+
+  if (IS_DEMO) {
+    // 演示站：不调外部 GeoIP 接口（公开演示访客多，免费额度很快被打爆），没缓存的一律未知城市
+    for (const ip of needLookup) out.set(ip, { city: "未知城市", region: null, isp: null });
+    return out;
+  }
 
   // 另一批查询还在跑：这次先不查（没缓存的给占位），下回进来再看结果
   if (geoInFlight) {

@@ -1,6 +1,7 @@
 import path from "node:path";
 import { NextResponse } from "next/server";
 import { isReader } from "@/lib/auth";
+import { IS_DEMO } from "@/lib/demo";
 import { completeMediaUpload } from "@/lib/media";
 import { objectKeyFor, ossPutUrl, storageMode } from "@/lib/storage";
 import { newId } from "@/lib/ids";
@@ -39,7 +40,9 @@ export async function POST(req: Request) {
   let width = 0;
   let height = 0;
 
-  if (!isGif) {
+  if (IS_DEMO) {
+    // 演示站：不压图不落盘，completeMediaUpload 会把这条换成样例素材（GIF 也换会动的样例 GIF）
+  } else if (!isGif) {
     // 统一转 JPEG：去掉 EXIF 方向问题、控制大小（HEIC 解不开就报错让她换个格式）
     try {
       const sharp = (await import("sharp")).default;
@@ -60,17 +63,19 @@ export async function POST(req: Request) {
   const mediaId = newId();
   const ext = isGif ? ".gif" : ".jpg";
   const key = objectKeyFor(mediaId, ext);
-  try {
-    if (storageMode() === "oss") {
-      const putUrl = ossPutUrl(key, outMime);
-      const res = await fetch(putUrl, { method: "PUT", headers: { "Content-Type": outMime }, body: new Uint8Array(outBuf) });
-      if (!res.ok) throw new Error(`传 OSS 失败 (${res.status})`);
-    } else {
-      const { writeFile } = await import("node:fs/promises");
-      await writeFile(path.join(MEDIA_DIR, `${mediaId}${ext}`), outBuf);
+  if (!IS_DEMO) {
+    try {
+      if (storageMode() === "oss") {
+        const putUrl = ossPutUrl(key, outMime);
+        const res = await fetch(putUrl, { method: "PUT", headers: { "Content-Type": outMime }, body: new Uint8Array(outBuf) });
+        if (!res.ok) throw new Error(`传 OSS 失败 (${res.status})`);
+      } else {
+        const { writeFile } = await import("node:fs/promises");
+        await writeFile(path.join(MEDIA_DIR, `${mediaId}${ext}`), outBuf);
+      }
+    } catch {
+      return NextResponse.json({ error: "没传上，再试一次？" }, { status: 500 });
     }
-  } catch {
-    return NextResponse.json({ error: "没传上，再试一次？" }, { status: 500 });
   }
 
   const row = completeMediaUpload({

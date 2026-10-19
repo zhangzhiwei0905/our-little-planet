@@ -7,7 +7,7 @@ import { cn } from "@/lib/cn";
 
 /** /write 的作者口令门。笔是限时的：不勾「这台设备是我自己的」，
  *  默认几小时后自动收回（在别人手机上拿过一次笔也不会一直挂着） */
-export function PenGate() {
+export function PenGate({ demoHint }: { demoHint?: string }) {
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
   const [error, setError] = useState("");
@@ -65,6 +65,9 @@ export function PenGate() {
           )}
         />
         {error && <p className="mt-3 text-sm font-bold text-rose-deep">{error}</p>}
+        {demoHint && (
+          <p className="mt-3 rounded-full bg-butter/50 px-3 py-1.5 text-xs font-bold text-ink-soft">🌱 {demoHint}</p>
+        )}
         <label className="mt-4 flex cursor-pointer items-center justify-center gap-2 text-sm text-ink-soft">
           <input
             type="checkbox"

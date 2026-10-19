@@ -8,12 +8,15 @@ import { listMilestones } from "@/lib/milestones";
 import { PenGate } from "@/components/write/PenGate";
 import { WriteDashboard } from "@/components/write/WriteDashboard";
 import { listAllTags } from "@/lib/tagStore";
+import { IS_DEMO } from "@/lib/demo";
 
 export const metadata: Metadata = { title: "写手账" };
 
 export default async function WritePage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   await recordGuestVisitFor("/write");
-  if (!(await isAuthor())) return <PenGate />;
+  if (!(await isAuthor())) {
+    return <PenGate demoHint={IS_DEMO ? `演示站：作者口令 ${process.env.AUTHOR_PASSWORD ?? "write-for-her"}` : undefined} />;
+  }
   // searchParams 在服务端读好传进去（客户端不再 useSearchParams，水合更稳）
   const sp = await searchParams;
   const FILTER_KEYS = ["all", "journal", "photo", "quote", "letter", "milestone", "egg"];

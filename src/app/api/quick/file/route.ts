@@ -6,6 +6,7 @@ import { Readable } from "node:stream";
 import type { ReadableStream as NodeWebReadableStream } from "node:stream/web";
 import { pipeline } from "node:stream/promises";
 import { quickTokenEnabled, quickTokenMatches } from "@/lib/quickToken";
+import { IS_DEMO } from "@/lib/demo";
 import { extFor, isAcceptedFile, MAX_UPLOAD_BYTES, normalizeMime } from "@/lib/media";
 import { storageMode } from "@/lib/storage";
 import { MEDIA_DIR } from "@/lib/db";
@@ -52,6 +53,27 @@ export async function PUT(req: Request) {
   await unlink(part).catch(() => undefined); // 上一次中断留下的半截，清掉重来
 
   let received = 0;
+  if (IS_DEMO) {
+    // 演示站：收完就丢，不写盘（大小校验照做，登记时换样例）
+    const drain = Readable.fromWeb(req.body as unknown as NodeWebReadableStream<Uint8Array>);
+    try {
+      for await (const chunk of drain) {
+        received += chunk.byteLength;
+        if (received > MAX_UPLOAD_BYTES) throw new Error("QUICK_FILE_TOO_LARGE");
+      }
+      if (received === 0) throw new Error("QUICK_FILE_EMPTY");
+    } catch (e) {
+      if (e instanceof Error && e.message === "QUICK_FILE_TOO_LARGE") {
+        return NextResponse.json({ error: "文件太大（单文件最多 2GB）" }, { status: 413 });
+      }
+      if (e instanceof Error && e.message === "QUICK_FILE_EMPTY") {
+        return NextResponse.json({ error: "请求体是空的" }, { status: 400 });
+      }
+      return NextResponse.json({ error: "保存上传文件失败" }, { status: 500 });
+    }
+    return NextResponse.json({ ok: true, key: `media/${filename}`, bytes: received });
+  }
+
   try {
     const source = Readable.fromWeb(req.body as unknown as NodeWebReadableStream<Uint8Array>);
     await pipeline(

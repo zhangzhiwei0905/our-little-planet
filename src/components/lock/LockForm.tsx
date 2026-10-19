@@ -11,7 +11,7 @@ import { READER_NAME } from "@/lib/reader";
  *  解开的瞬间不急着跳页——锁扣先弹开，然后全屏演一段「翻开本子」，翻页演完再进首页。
  *  这里是给她（读者）用的门：读者会话一年有效，不用「记住设备」；
  *  作者请去 /write 登录，那边才有 30 天记住选项 */
-export function LockForm({ next }: { next?: string }) {
+export function LockForm({ next, demoHint }: { next?: string; demoHint?: string }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -101,6 +101,9 @@ export function LockForm({ next }: { next?: string }) {
           )}
         />
         {error && <p className="mt-3 text-sm font-bold text-rose-deep">{error}</p>}
+        {demoHint && (
+          <p className="mt-3 rounded-full bg-butter/50 px-3 py-1.5 text-xs font-bold text-ink-soft">🌱 {demoHint}</p>
+        )}
         <button type="submit" disabled={busy || opened || password.length === 0} className="btn-primary mt-6 w-full justify-center">
           <LockKeyOpen weight="bold" className="size-5" />
           {opened ? "翻开啦" : busy ? "正在开锁…" : "解开锁扣"}

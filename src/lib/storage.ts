@@ -150,6 +150,7 @@ export async function ossObjectExists(key: string): Promise<boolean> {
 /** 统一删除入口：按当前模式删本地文件或 OSS 对象。
  *  media.filename：local 模式存文件名，oss 模式存对象 key */
 export async function deleteStoredObject(filename: string): Promise<void> {
+  if (process.env.NEXT_PUBLIC_DEMO_MODE === "1") return; // 演示站：媒体文件都是样例素材，删行可以、删文件不行
   if (storageMode() === "oss") {
     await ossDeleteObject(filename);
   } else {

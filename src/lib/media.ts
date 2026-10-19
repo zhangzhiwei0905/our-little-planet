@@ -1,6 +1,7 @@
 import path from "node:path";
 import { db, MEDIA_DIR, type MediaRow } from "./db";
 export type { MediaRow } from "./db";
+import { demoSampleBytes, demoSampleFor, IS_DEMO } from "./demo";
 import { newId, nowISO } from "./ids";
 import {
   deleteStoredObject,
@@ -225,6 +226,7 @@ function internalOssUrl(url: string): string {
 
 /** 上传完成后异步补缩略图/视频封面：失败不打断上传（墙上暂时回落原样，后台补上自然切换） */
 async function thumbAfterUpload(row: MediaRow): Promise<void> {
+  if (IS_DEMO) return; // 演示站的媒体都指向现成样例文件，缩略图走原图回落、封面走视频首帧，不用再生成
   try {
     if (row.kind === "video") {
       if (storageMode() === "oss") {
@@ -335,6 +337,7 @@ export function prepareMediaUpload(name: string, rawMime: string): PrepareResult
 export async function saveLocalDirect(mediaId: string, mime: string, name: string, buf: Buffer): Promise<string> {
   const ext = extFor(mime, name);
   const filename = `${mediaId}${ext}`;
+  if (IS_DEMO) return filename; // 演示站：文件体直接丢弃，complete 入库时会换成样例
   const { writeFile } = await import("node:fs/promises");
   await writeFile(path.join(MEDIA_DIR, filename), buf);
   return filename;
@@ -343,6 +346,7 @@ export async function saveLocalDirect(mediaId: string, mime: string, name: strin
 /** 服务端转好的 JPEG 落位：local 写盘，oss 由服务端代传（用同一个签名规则） */
 export async function storeJpegMedia(mediaId: string, buf: Buffer): Promise<string> {
   const key = objectKeyFor(mediaId, ".jpg");
+  if (IS_DEMO) return key; // 演示站：不落盘，complete 时换样例
   if (storageMode() === "oss") {
     const putUrl = ossPutUrl(key, "image/jpeg");
     const res = await fetch(putUrl, {
@@ -414,6 +418,23 @@ export function completeMediaUpload(input: CompleteInput): MediaRow {
     tags: null,
     created_at: nowISO(),
   };
+  if (IS_DEMO) {
+    // 演示站：用户传的文件体不保存，这条媒体指向样例素材（文件由 seed 放在 data/media）
+    const sample = demoSampleFor(kind, input.mime);
+    row.mime = sample.mime;
+    row.filename = sample.filename;
+    row.width = sample.width > 0 ? sample.width : null;
+    row.height = sample.height > 0 ? sample.height : null;
+    row.bytes = demoSampleBytes(sample);
+    row.hevc = null;
+    row.duration = sample.duration ?? null;
+    row.fingerprint = null;
+    db.prepare(
+      `INSERT INTO media (id, entry_id, kind, mime, filename, width, height, bytes, caption, sort, live_video_id, hevc, duration, fingerprint, created_at)
+       VALUES (@id, @entry_id, @kind, @mime, @filename, @width, @height, @bytes, @caption, @sort, @live_video_id, @hevc, @duration, @fingerprint, @created_at)`
+    ).run(row);
+    return row;
+  }
   db.prepare(
     `INSERT INTO media (id, entry_id, kind, mime, filename, width, height, bytes, caption, sort, live_video_id, hevc, duration, fingerprint, created_at)
      VALUES (@id, @entry_id, @kind, @mime, @filename, @width, @height, @bytes, @caption, @sort, @live_video_id, @hevc, @duration, @fingerprint, @created_at)`

@@ -4,6 +4,7 @@ import { LockForm } from "@/components/lock/LockForm";
 import { Sticker } from "@/components/journal/Sticker";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { recordGuestVisitFor } from "@/lib/visitors";
+import { IS_DEMO } from "@/lib/demo";
 
 export default async function LockPage({
   searchParams,
@@ -25,7 +26,7 @@ export default async function LockPage({
       <div className="absolute right-4 top-4 z-10">
         <ThemeToggle className="bg-paper/60 backdrop-blur" />
       </div>
-      <LockForm next={next} />
+      <LockForm next={next} demoHint={IS_DEMO ? `演示站：解锁密码 ${process.env.READER_PASSWORD ?? "0520"}` : undefined} />
     </main>
   );
 }

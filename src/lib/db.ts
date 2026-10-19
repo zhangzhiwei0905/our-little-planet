@@ -1,6 +1,7 @@
 import Database from "better-sqlite3";
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import path from "node:path";
+import { DEMO_RESET_MINUTES, IS_DEMO } from "./demo";
 
 export const DATA_DIR = path.join(process.cwd(), "data");
 export const MEDIA_DIR = path.join(DATA_DIR, "media");
@@ -125,7 +126,7 @@ declare global {
 
 function getDb(): Database.Database {
   if (!globalThis.__journalDb) {
-    const db = new Database(path.join(DATA_DIR, "journal.db"));
+    const db = new Database(IS_DEMO ? ":memory:" : path.join(DATA_DIR, "journal.db"));
     db.pragma("journal_mode = WAL");
     // build 阶段多个 worker 并发建表会撞锁，等一等而不是直接失败
     db.pragma("busy_timeout = 8000");
@@ -220,9 +221,66 @@ function getDb(): Database.Database {
     } catch {
       /* 收不进就算了 */
     }
+    if (IS_DEMO) {
+      // 演示沙箱：整本手账跑在内存里，从种好的磁盘快照恢复并定时重置。
+      // 磁盘上的 journal.db 只作为只读快照源，演示站的任何写入都碰不到它
+      restoreDemoSnapshot(db);
+      const timer = setInterval(() => {
+        try {
+          restoreDemoSnapshot(db);
+        } catch (e) {
+          console.error("[demo] 重置演示数据失败：", e);
+        }
+      }, DEMO_RESET_MINUTES * 60_000);
+      timer.unref();
+    }
     globalThis.__journalDb = db;
   }
   return globalThis.__journalDb;
+}
+
+/** 演示快照要拷的表（顺序：先父后子，media 引用 entries） */
+const DEMO_SNAPSHOT_TABLES = [
+  "settings",
+  "tags",
+  "entries",
+  "media",
+  "milestones",
+  "eggs",
+  "egg_doodles",
+  "marks",
+  "guest_visits",
+  "guest_geo",
+  "screenings",
+] as const;
+
+/** 把种好的 data/journal.db 全量拷进内存库。better-sqlite3 全同步，
+ *  这一段在同一个事件循环 tick 里原子完成，不会和正在处理的请求交错。
+ *  按列名拷贝（两边 schema 可能有列序差异：有的列是 ALTER 追加的，天然在表尾） */
+function restoreDemoSnapshot(db: Database.Database): void {
+  const snapPath = path.join(DATA_DIR, "journal.db");
+  if (!existsSync(snapPath)) {
+    console.warn("[demo] 找不到 data/journal.db——先跑 npm run seed，演示站现在只有空架子");
+    return;
+  }
+  db.exec(`ATTACH DATABASE '${snapPath.replaceAll("'", "''")}' AS demo_snap`);
+  try {
+    const tableInfo = (table: string, schema = "") =>
+      (db.pragma(`${schema ? `${schema}.` : ""}table_info(${table})`) as { name: string }[]).map((c) => c.name);
+    db.transaction(() => {
+      for (const table of DEMO_SNAPSHOT_TABLES) {
+        const liveCols = tableInfo(table);
+        const cols = tableInfo(table, "demo_snap").filter((c) => liveCols.includes(c));
+        db.exec(`DELETE FROM ${table}`);
+        if (cols.length > 0) {
+          const names = cols.join(", ");
+          db.exec(`INSERT INTO ${table} (${names}) SELECT ${names} FROM demo_snap.${table}`);
+        }
+      }
+    })();
+  } finally {
+    db.exec("DETACH DATABASE demo_snap");
+  }
 }
 
 export const db = getDb();

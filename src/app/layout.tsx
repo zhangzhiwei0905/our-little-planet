@@ -7,6 +7,8 @@ import "@fontsource/baloo-2/700.css";
 import "./globals.css";
 import { ToastProvider } from "@/components/Toast";
 import { ChunkReloadGuard } from "@/components/ChunkReloadGuard";
+import { DemoBadge } from "@/components/DemoBadge";
+import { DEMO_RESET_MINUTES, IS_DEMO } from "@/lib/demo";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +34,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* 纸张纹理：盖在最上层但不挡交互 */}
         <div className="grain" aria-hidden />
         <ChunkReloadGuard />
+        {IS_DEMO && (
+          <DemoBadge
+            resetMinutes={DEMO_RESET_MINUTES}
+            readerPassword={process.env.READER_PASSWORD ?? "0520"}
+            authorPassword={process.env.AUTHOR_PASSWORD ?? "write-for-her"}
+          />
+        )}
         <ToastProvider>{children}</ToastProvider>
       </body>
     </html>

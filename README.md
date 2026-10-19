@@ -236,6 +236,8 @@ npm run dev                  # 打开 http://localhost:3000
 | `NEXT_PUBLIC_READER_NAME` | 界面上对她的称呼：「仅她可见」「她的专属入口」……换成她的昵称 | `她` |
 | `SHORTCUT_TOKEN` | 快捷指令速记通道的令牌，`openssl rand -hex 24` 生成；不设置则通道关闭 | 无（可选） |
 | `FFMPEG_PATH` | ffmpeg 可执行文件路径；不设置则用系统 PATH 里的 | 无（可选） |
+| `NEXT_PUBLIC_DEMO_MODE` | 演示站开关：设 `1` 后整本手账跑在内存里、定时重置，上传换成内置样例（见 [`deploy/DEMO.md`](deploy/DEMO.md)；改了要重新 build） | 无（可选） |
+| `DEMO_RESET_MINUTES` | 演示站多少分钟自动重置一次 | `5` |
 | `OSS_BUCKET` / `OSS_ENDPOINT` / `OSS_ACCESS_KEY_ID` / `OSS_ACCESS_KEY_SECRET` | 阿里云 OSS，四项都填才启用（见下） | 无（可选） |
 
 改了 `AUTH_SECRET` 或 `NEXT_PUBLIC_READER_NAME` 需要重新 `npm run build`。
@@ -282,6 +284,16 @@ pm2 start "npm run start" --name journal       # 或用 systemd
 - 小内存服务器不想在线上构建：`DEPLOY_HOST=服务器别名 DOMAIN=你的域名 bash scripts/deploy.sh` 会在本机构建、只上传产物、换名重启，失败自动回退。
 - 给服务器设 `TZ=Asia/Shanghai`（或你们所在的时区），保证「在一起 N 天」按时区翻页。
 - **备份 = 备份 `data/` 文件夹**（`journal.db` + `media/`），拷走一份就不会丢。
+
+### 演示站（可选）
+
+想给别人看效果又怕被乱写？用**演示模式**部署一个公开样例站（比如挂在子域名 `demo.你的域名` 上）：
+
+- 整本手账跑在内存里，每几分钟自动重置回 `npm run seed` 的样例内容，磁盘数据永远只读；
+- 访客上传的照片 / 视频 / 实况 / 语音一律换成内置样例素材，文件字节不落盘；
+- 锁页和写作页会自动展示演示密码，谁都能进来玩，但谁都改不坏。
+
+一条龙步骤（含 nginx 子域名配置、限速、systemd）见 [`deploy/DEMO.md`](deploy/DEMO.md)。
 
 ## 阿里云 OSS（可选）
 
