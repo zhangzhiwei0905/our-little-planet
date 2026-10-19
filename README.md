@@ -36,6 +36,7 @@
 - [脚本](#脚本)
 - [隐私与安全](#隐私与安全)
 - [技术栈与设计](#技术栈与设计)
+- [许可证](#许可证)
 
 ---
 
@@ -323,3 +324,7 @@ pm2 start "npm run start" --name journal       # 或用 systemd
 - 字体：霞鹜文楷（LXGW WenKai）、Caveat、Baloo 2，全部自托管，国内访问快；图标：Phosphor Icons
 
 视觉语言见 [DESIGN.md](DESIGN.md)：奶油纸底 + 玫瑰粉唯一强调色、拍立得 / 和纸胶带 / 便利贴 / 日期章组件。
+
+## 许可证
+
+[MIT](LICENSE)。欢迎拿去给你在乎的人做一本。
