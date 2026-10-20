@@ -21,6 +21,9 @@ server {
     listen 80;
     server_name demo.example.com;
 
+    # 独立访问日志：统计演示站 PV/UV 用（logrotate 随 /var/log/nginx/*.log 自动轮转）
+    access_log /var/log/nginx/journal-demo.access.log;
+
     # 演示站上传都换样例素材，没必要放大口子；速记 multipart 表单也够用
     client_max_body_size 12m;
 

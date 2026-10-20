@@ -94,6 +94,26 @@ sudo certbot --nginx -d 你的子域名             # 没装就先 apt install c
 
 磁盘上的 `data/` 永远只有 `npm run seed` 写进去的东西；服务重启后内存数据也会重新从快照恢复。
 
+## 六、看访问量（PV / UV）
+
+配置里已给演示站开了独立日志 `/var/log/nginx/journal-demo.access.log`（nginx 自带的
+logrotate 会自动轮转）。内置的「访客记录」页在演示站上只有 10 分钟记忆（随内存库重置），
+发帖宣传的访问量以这份日志为准：
+
+```bash
+# 今日 PV / UV（按 IP 去重，排除爬虫 UA）
+awk -v d="$(date +%d/%b/%Y)" '$4 ~ d' /var/log/nginx/journal-demo.access.log \
+  | grep -viE 'bot|crawler|spider|curl' > /tmp/today.log
+echo "今日 PV: $(wc -l < /tmp/today.log)"
+echo "今日 UV: $(awk '{print $1}' /tmp/today.log | sort -u | wc -l)"
+
+# 哪里来的（来源 referer，看论坛引流效果）
+awk -v d="$(date +%d/%b/%Y)" '$4 ~ d' /var/log/nginx/journal-demo.access.log \
+  | awk -F'"' '{print $6}' | sort | uniq -c | sort -rn | head -10
+```
+
+想要实时仪表盘再装 GoAccess：`goaccess /var/log/nginx/journal-demo.access.log --log-format=COMBINED -o stats.html --real-time-html`。
+
 ## 行为速查
 
 | 操作 | 演示站行为 |
