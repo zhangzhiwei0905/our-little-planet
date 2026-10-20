@@ -7,6 +7,8 @@
 
 **Next.js 16 · React 19 · SQLite · 自托管 · 手机优先**
 
+[![LINUX DO](https://img.shields.io/badge/LINUX%20DO-社区友链-FFB003?style=flat-square)](https://linux.do)
+
 <img src="docs/screenshots/home.webp" alt="首页：在一起的天数、拍立得和她的语录" width="100%">
 
 <img src="docs/screenshots/mobile.webp" alt="手机端：锁页、首页、手账、相册、语录墙" width="100%">
