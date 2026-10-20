@@ -26,7 +26,7 @@ step() { printf "\n\033[1;35m==> %s\033[0m\n" "$*"; }
 
 step "0/7 预检：服务器连通"
 ssh -o BatchMode=yes -o ConnectTimeout=10 "$HOST" 'echo "服务器连通 ok"' || {
-  echo "连不上 $HOST：服务器恢复了吗？" >&2
+  echo "连不上 ${HOST}：服务器恢复了吗？" >&2
   exit 1
 }
 
@@ -42,7 +42,7 @@ else
 fi
 [[ -f .next/BUILD_ID ]] || { echo ".next/BUILD_ID 不存在：本地构建没跑过？" >&2; exit 1; }
 
-step "2/7 同步源码到 $HOST:~/$DIR（不碰 data / .env.local / node_modules）"
+step "2/7 同步源码到 $HOST:~/${DIR}（不碰 data / .env.local / node_modules）"
 COPYFILE_DISABLE=1 tar --no-xattrs -czf - --exclude .DS_Store --exclude '._*' \
   src public scripts \
   package.json package-lock.json next.config.ts tsconfig.json postcss.config.mjs \
@@ -87,7 +87,7 @@ test -f BUILD_ID
 echo '构建产物已就位'
 "
 
-step "5/7 备份 → 换上新构建 → 拉起 pm2 进程 $PM2_NAME（端口 $PORT）"
+step "5/7 备份 → 换上新构建 → 拉起 pm2 进程 ${PM2_NAME}（端口 ${PORT}）"
 ssh "$HOST" "
 set -e
 cd ~/$DIR
