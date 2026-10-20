@@ -77,9 +77,12 @@ sudo systemctl enable --now our-little-planet-demo
 ```bash
 sudo cp ~/journal-demo.nginx.conf /etc/nginx/conf.d/你的子域名.conf   # deploy-demo.sh 会把样例放到家目录
 sudo sed -i 's/demo.example.com/你的子域名/g' /etc/nginx/conf.d/你的子域名.conf
-sudo nginx -t && sudo systemctl reload nginx
-sudo certbot --nginx -d 你的子域名   # 没装就先 apt install certbot python3-certbot-nginx
+sudo nginx -t && sudo systemctl reload nginx   # 此时 http://你的子域名 已可访问
+sudo certbot --nginx -d 你的子域名             # 没装就先 apt install certbot python3-certbot-nginx
 ```
+
+> 顺序很重要：配置初始不含 ssl 行（证书没签之前写了证书路径，`nginx -t` 会直接失败）。
+> 先 reload 让 HTTP 通，`certbot --nginx` 会自动签发证书、加上 443 监听和 80→443 跳转。
 
 演示配置里做了一件额外的事：对写接口（POST/PUT/PATCH/DELETE）按 IP 限速（每分钟 15 次加突发），
 请求体上限也降到 12MB——反正上传都换样例，没必要放大文件口子。

@@ -1,6 +1,11 @@
-# 我们的小星球 · 演示站 Nginx 配置示例
-# 部署步骤见同目录 DEMO.md；把 demo.example.com 换成你的子域名，
-# 证书用 certbot --nginx -d demo.example.com 自动签发
+# 我们的小星球 · 演示站 Nginx 配置（初始 HTTP 版）
+#
+# 顺序很重要：这份配置先不含任何 ssl 行——证书还没签的时候写了 ssl_certificate，
+# nginx -t 会直接失败。正确流程：
+#   1. 装好这份 conf → nginx -t && reload      （此时 http://域名 已可访问）
+#   2. sudo certbot --nginx -d demo.example.com （certbot 自动签发证书、加上
+#      443 监听和 80→443 跳转，之后 https://域名 即可用）
+# 把 demo.example.com 换成你的子域名。
 limit_req_zone $demo_write_key zone=demo_write:10m rate=15r/m;
 
 # 只对写接口限速：读页面不受影响（空 key = 不限）
@@ -13,6 +18,7 @@ map $request_method $demo_write_key {
 }
 
 server {
+    listen 80;
     server_name demo.example.com;
 
     # 演示站上传都换样例素材，没必要放大口子；速记 multipart 表单也够用
@@ -40,20 +46,4 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
-
-    listen 443 ssl;
-    ssl_certificate /etc/letsencrypt/live/demo.example.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/demo.example.com/privkey.pem;
-    include /etc/letsencrypt/options-ssl-nginx.conf;
-    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
-}
-
-server {
-    if ($host = demo.example.com) {
-        return 301 https://$host$request_uri;
-    }
-
-    listen 80;
-    server_name demo.example.com;
-    return 404;
 }

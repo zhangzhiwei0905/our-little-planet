@@ -140,8 +140,8 @@ cat <<TIP
   ssh $HOST
   sudo cp ~/journal-demo.nginx.conf /etc/nginx/conf.d/$DOMAIN.conf
   sudo sed -i 's/demo\\.example\\.com/$DOMAIN/g' /etc/nginx/conf.d/$DOMAIN.conf
-  sudo nginx -t && sudo systemctl reload nginx
-  sudo certbot --nginx -d $DOMAIN
+  sudo nginx -t && sudo systemctl reload nginx   # 此时 http://$DOMAIN 已可访问
+  sudo certbot --nginx -d $DOMAIN                # certbot 自动签证书并加上 443
 
 之后打开 https://$DOMAIN 就是演示站。
 
