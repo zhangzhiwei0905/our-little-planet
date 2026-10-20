@@ -9,19 +9,26 @@
 
 普通部署不受影响：不设 `NEXT_PUBLIC_DEMO_MODE` 时一切照旧。
 
+## 日常更新（一条命令）
+
+`bash scripts/deploy-demo.sh`：本机构建演示模式产物 → 传到服务器 → pm2 拉起 → 健康检查（失败自动回退）。
+全程不需要 root；nginx + 证书的 root 步骤只在首次部署时做一次（脚本最后会打印）。
+
+> 小内存服务器（2核3.5G 这类）**不要**在服务器上 `npm run build`——会把整机打满、
+> 挤死同机的其他服务。要在线上构建，至少学 `deploy.sh` 那样 `nice -n 19` + 限 Node 堆内存。
+
 ## 一、准备
 
 - 一台能跑 Node 20+ 的 Linux 服务器（演示站不需要 ffmpeg，因为上传都换样例了）；
 - 一个子域名，比如 `demo.example.com`，DNS 加一条 A 记录指向服务器 IP；
-- 服务器上装好 nginx（`apt install nginx`；用别的反代也行，参考下面的配置改）。
+- 服务器上装好 nginx 和 pm2（`apt install nginx` 再 `npm i -g pm2`；用别的反代也行，参考下面的配置改）。
 
-## 二、服务器上安装
+## 二、服务器上安装（一次性）
 
 ```bash
-# 1. 拉代码（main 分支）
-sudo mkdir -p /opt && sudo chown $USER /opt
-git clone -b main https://github.com/zhangzhiwei0905/our-little-planet.git /opt/our-little-planet-demo
-cd /opt/our-little-planet-demo
+# 1. 拉代码（main 分支），放到家目录
+git clone -b main https://github.com/zhangzhiwei0905/our-little-planet.git ~/our-little-planet-demo
+cd ~/our-little-planet-demo
 
 # 2. 写演示站的 .env.local
 cat > .env.local <<'EOF'
@@ -38,33 +45,40 @@ AUTH_SECRET=换成随机长字符串
 SHORTCUT_TOKEN=
 EOF
 
-# 3. 安装依赖、种样例内容、构建
+# 3. 安装依赖、种样例内容（构建不在服务器上做，见下）
 npm ci
 npm run seed
-NEXT_PUBLIC_DEMO_MODE=1 npm run build   # 或直接 npm run build（.env.local 里已有该变量）
 ```
 
-> `NEXT_PUBLIC_` 开头的变量是构建时写进前端代码的，改它必须重新 `npm run build`。
+> `NEXT_PUBLIC_` 开头的变量是构建时写进前端代码的，改它必须重新构建。
+> 服务器上不执行 `npm run build`——回本机跑 `bash scripts/deploy-demo.sh`，它会带着
+> `NEXT_PUBLIC_DEMO_MODE=1` 构建、上传产物并把服务拉起来。
 
-## 三、systemd 常驻
+## 三、本机部署（首次 + 以后每次更新）
+
+```bash
+# 本机（项目根目录）
+bash scripts/deploy-demo.sh
+# 完成后服务器上 http://127.0.0.1:3100/lock 已可见「演示站：解锁密码」
+```
+
+脚本会用 pm2 拉起名为 `journal-demo` 的进程（端口 3100，env 里捕获 `PORT=3100`，
+不会碰正式站的 3000）。不想用 pm2 的，也可以用仓库里的 systemd 服务文件
+（`deploy/our-little-planet-demo.service`，路径端口按需改）：
 
 ```bash
 sudo cp deploy/our-little-planet-demo.service /etc/systemd/system/
-# 按需改里面的路径 / 用户 / 端口（默认 /opt/our-little-planet-demo、端口 3100）
 sudo systemctl daemon-reload
 sudo systemctl enable --now our-little-planet-demo
-curl -s localhost:3100/lock | grep 演示   # 能看到「演示站：解锁密码」就成功了
 ```
 
-## 四、nginx 子域名 + HTTPS
+## 四、nginx 子域名 + HTTPS（一次性，需要 root）
 
 ```bash
-sudo cp deploy/demo.nginx.conf.example /etc/nginx/sites-available/our-little-planet-demo
-sudo sed -i 's/demo.example.com/你的子域名/g' /etc/nginx/sites-available/our-little-planet-demo
-sudo ln -s /etc/nginx/sites-available/our-little-planet-demo /etc/nginx/sites-enabled/
+sudo cp ~/journal-demo.nginx.conf /etc/nginx/conf.d/你的子域名.conf   # deploy-demo.sh 会把样例放到家目录
+sudo sed -i 's/demo.example.com/你的子域名/g' /etc/nginx/conf.d/你的子域名.conf
 sudo nginx -t && sudo systemctl reload nginx
-sudo apt install certbot python3-certbot-nginx   # 签证书 + 自动改写 ssl 配置
-sudo certbot --nginx -d 你的子域名
+sudo certbot --nginx -d 你的子域名   # 没装就先 apt install certbot python3-certbot-nginx
 ```
 
 演示配置里做了一件额外的事：对写接口（POST/PUT/PATCH/DELETE）按 IP 限速（每分钟 15 次加突发），
@@ -72,14 +86,8 @@ sudo certbot --nginx -d 你的子域名
 
 ## 五、以后怎么更新
 
-```bash
-cd /opt/our-little-planet-demo
-git pull
-npm ci
-npm run seed        # 样例内容有更新时重新种
-npm run build
-sudo systemctl restart our-little-planet-demo
-```
+改完代码提交后，本机一条命令：`bash scripts/deploy-demo.sh`。
+样例内容（seed 素材/文案）有更新时，登录服务器补一句 `cd ~/our-little-planet-demo && npm run seed`。
 
 磁盘上的 `data/` 永远只有 `npm run seed` 写进去的东西；服务重启后内存数据也会重新从快照恢复。
 
